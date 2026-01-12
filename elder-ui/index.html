@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LINE Sweet Home - 長輩錄音</title>
+    <style>
+        :root {
+            --line-green: #24C24F;
+            --light-green: #C1F0C1;
+            --btn-red: #FF0000;
+            --card-bg: #F8F9F8;
+        }
+
+        body, html {
+            margin: 0; padding: 0; height: 100%;
+            font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+            background-color: var(--line-green);
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* 主容器：模擬手機螢幕 */
+        .phone-container {
+            width: 100%; max-width: 414px; height: 100vh;
+            display: flex; flex-direction: column;
+            position: relative;
+        }
+
+        /* 頂部標題列 */
+        .header {
+            height: 120px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; color: white;
+        }
+        .header h2 { margin: 0; font-size: 26px; letter-spacing: 1px; }
+
+        /* 白色圓角卡片內容區 */
+        .content-card {
+            flex: 1; background-color: var(--card-bg);
+            margin: 0 15px 20px 15px; border-radius: 30px;
+            display: flex; flex-direction: column; align-items: center;
+            padding: 40px 20px; box-sizing: border-box;
+        }
+
+        .title {
+            font-size: 36px; font-weight: 800; text-align: center;
+            line-height: 1.3; margin-top: 20px; margin-bottom: 40px;
+        }
+
+        /* 錄音大按鈕 */
+        #record-trigger {
+            width: 260px; height: 260px; border-radius: 50%;
+            background: radial-gradient(circle, #E1F9E1 0%, var(--light-green) 100%);
+            border: none; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: transform 0.1s;
+        }
+        #record-trigger:active { transform: scale(0.95); }
+        #record-trigger img { width: 120px; opacity: 0.7; }
+
+        .hint { font-size: 24px; color: #333; margin: 30px 0; font-weight: 500; }
+
+        /* 紅色橢圓按鈕樣式 */
+        .btn-red {
+            background-color: var(--btn-red); color: white;
+            border: none; border-radius: 50px;
+            padding: 12px 50px; font-size: 32px; font-weight: 900;
+            cursor: pointer; margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .btn-history { font-size: 28px; padding: 12px 30px; }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+    <div class="header">
+        <h2>LINE SWEET HOME</h2>
+    </div>
+
+    <div class="content-card">
+        <div class="title">今天，<br>想分享些什麼？</div>
+        
+        <button id="record-trigger">
+            <img src="https://cdn-icons-png.flaticon.com/512/1082/1082810.png" alt="Mic">
+        </button>
+
+        <div class="hint" id="status-text">點按即可錄音</div>
+
+        <button id="send-btn" class="btn-red" style="visibility: hidden;">發送</button>
+        <button class="btn-red btn-history">查看歷史日記</button>
+    </div>
+</div>
+
+<script>
+    // 簡單的點擊互動邏輯，方便你後續接入 Task 1
+    const recordBtn = document.getElementById('record-trigger');
+    const statusText = document.getElementById('status-text');
+    const sendBtn = document.getElementById('send-btn');
+
+    let isRecording = false;
+
+    recordBtn.onclick = () => {
+        if(!isRecording) {
+            isRecording = true;
+            statusText.innerText = "正在錄音中...";
+            recordBtn.style.boxShadow = "0 0 20px rgba(255,0,0,0.3)";
+        } else {
+            isRecording = false;
+            statusText.innerText = "錄音完成！";
+            recordBtn.style.boxShadow = "none";
+            sendBtn.style.visibility = "visible"; // 錄完才出現發送鈕
+        }
+    };
+</script>
+
+</body>
+</html>
