@@ -10,19 +10,15 @@
             --light-green: #C1F0C1;
             --btn-red: #FF0000;
         }
-
-        /* 讓筆電背景變深色，像是在看手機 */
         body {
             background-color: #333;
             margin: 0; padding: 0;
             display: flex; justify-content: center; align-items: center;
             height: 100vh; font-family: sans-serif;
         }
-
-        /* 手機外殼容器 */
         .phone-container {
             width: 100%;
-            max-width: 414px; /* iPhone Pro Max 寬度 */
+            max-width: 414px;
             height: 100vh;
             background-color: var(--line-green);
             position: relative;
@@ -30,14 +26,10 @@
             overflow: hidden;
             display: flex; flex-direction: column;
         }
-
-        /* 頂部 Header */
         .header {
             height: 80px; display: flex; align-items: center; justify-content: center;
             color: white; font-weight: bold; font-size: 20px;
         }
-
-        /* 內容卡片區域 */
         .content-card {
             flex: 1;
             background-color: #F8F9F8;
@@ -47,12 +39,8 @@
             padding: 40px 20px;
             position: relative;
         }
-
-        /* 頁面切換控制 */
         .page { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; }
         .active { display: flex; }
-
-        /* 錄音按鈕樣式 */
         #record-trigger {
             width: 240px; height: 240px; border-radius: 50%;
             background: radial-gradient(circle, #E1F9E1 0%, var(--light-green) 100%);
@@ -60,16 +48,12 @@
             margin: 40px 0;
         }
         #record-trigger img { width: 100px; }
-
-        /* 紅色按鈕樣式 */
         .btn-red {
             background-color: var(--btn-red); color: white;
             border: none; border-radius: 50px;
             padding: 10px 40px; font-size: 28px; font-weight: bold;
             cursor: pointer; margin: 10px 0;
         }
-
-        /* 熊大圖示 */
         .bear-img { width: 220px; margin: 20px 0; }
         .success-title { font-size: 48px; font-weight: bold; margin: 20px 0; }
     </style>
@@ -78,7 +62,6 @@
 
 <div class="phone-container">
     <div class="header">LINE SWEET HOME</div>
-
     <div class="content-card">
         <div id="page-record" class="page active">
             <h1 style="font-size: 32px; text-align: center;">今天，<br>想分享些什麼？</h1>
@@ -92,7 +75,7 @@
 
         <div id="page-success" class="page">
             <div class="success-title">傳送成功</div>
-            <img class="bear-img" src="https://postimg.cc/Zvqg4jn6" alt="熊大">
+            <img class="bear-img" src="https://stickershop.line-scdn.net/stickershop/v1/sticker/314352136/android/sticker.png" alt="熊大">
             <button id="retry-btn" class="btn-red">再傳一則</button>
         </div>
     </div>
@@ -106,32 +89,86 @@
     const pageSuccess = document.getElementById('page-success');
     const retryBtn = document.getElementById('retry-btn');
 
+    let mediaRecorder;
+    let audioChunks = [];
     let isRecording = false;
 
-    // 1. 處理錄音與發送按鈕出現
-    recordBtn.onclick = () => {
+    // --- 錄音邏輯 ---
+    recordBtn.onclick = async () => {
         if (!isRecording) {
-            isRecording = true;
-            statusText.innerText = "正在錄音中...";
+            try {
+                // 1. 請求麥克風權限
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                statusText.innerText = "🔴 錄音中...再按一次停止";
+                recordBtn.style.boxShadow = "0 0 20px rgba(255,0,0,0.5)";
+            } catch (err) {
+                alert("無法使用麥克風，請確認權限設定。");
+            }
         } else {
+            // 停止錄音
+            mediaRecorder.stop();
             isRecording = false;
-            statusText.innerText = "錄音完成！";
+            statusText.innerText = "錄音完成！可以發送囉。";
+            recordBtn.style.boxShadow = "none";
             sendBtn.style.display = "block";
         }
     };
 
-    // 2. 處理頁面切換 (發送 -> 成功頁)
-    sendBtn.onclick = () => {
-        pageRecord.classList.remove('active');
-        pageSuccess.classList.add('active');
+    // --- 發送至後端邏輯 ---
+    sendBtn.onclick = async () => {
+        if (audioChunks.length === 0) {
+            alert("找不到錄音檔，請重新錄音");
+            return;
+        }
+
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        
+        // 檔名設定為 voice_sick.webm 以觸發 TY 的劇本
+        formData.append('audio', audioBlob, 'voice_sick.webm'); 
+        formData.append('demoMode', 'true');
+
+        try {
+            statusText.innerText = "正在傳送給 AI 小助手...";
+            sendBtn.disabled = true;
+
+            const response = await fetch('http://localhost:8787/v1/entries', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.id) {
+                localStorage.setItem('last_id', data.id);
+                pageRecord.classList.remove('active');
+                pageSuccess.classList.add('active');
+            }
+        } catch (error) {
+            console.error("對接失敗:", error);
+            alert("連不上後端！請確認終端機 node server.js 有沒有在跑？");
+            sendBtn.disabled = false;
+            statusText.innerText = "傳送失敗，請重試";
+        }
     };
 
-    // 3. 處理再傳一則 (成功頁 -> 錄音頁)
+    // 再傳一則
     retryBtn.onclick = () => {
         pageSuccess.classList.remove('active');
         pageRecord.classList.add('active');
         sendBtn.style.display = "none";
+        sendBtn.disabled = false;
         statusText.innerText = "點按即可錄音";
+        audioChunks = [];
     };
 </script>
 
